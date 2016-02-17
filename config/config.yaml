@@ -1,0 +1,28 @@
+#数据库连接地址
+database:
+    adapter  : Mysql
+    host     : 127.0.0.1
+    username : root
+    password : root
+    dbname   : rookie
+    port	 : 3306
+    charset  : utf8
+
+#命名空间包
+namespaces:
+    Plugins  : /app/plugins    #namespace:path
+    Library  : /app/library
+    Model    : /app/model
+    Service  : /app/service
+    ReactQue : /react_phalcon
+
+#应用模块注册
+apps_modules:
+    admin  :
+        className : Admin\Module                  
+        path : /app/modules/admin/Module.php
+
+#缓存路径,推荐设置为非代码目录
+apps_data:
+    tmp_path   : '/../cache'
+    user_data  : '../data'

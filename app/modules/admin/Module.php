@@ -1,0 +1,95 @@
+<?php
+
+namespace Admin;
+use Phalcon\DiInterface;
+use Phalcon\Loader;
+use Phalcon\Mvc\View;
+use Phalcon\Mvc\ModuleDefinitionInterface;
+
+class Module implements ModuleDefinitionInterface
+{
+    /**
+     * Registers an autoloader related to the module
+     *
+     * @param DiInterface $di
+     */
+    public function registerAutoloaders(DiInterface $di = NULL)
+    {
+
+
+        $loader = new Loader();
+        // echo __DIR__ . '/controllers/';
+
+        $loader->registerNamespaces(array(
+            __NAMESPACE__.'\Controllers' => __DIR__ . '/controllers/'
+        ));
+
+        $loader->register();
+        $di->set('flash', function () {
+            $flash = new \Phalcon\Flash\Direct(
+                array(
+                    'error'   => 'alert alert-danger',
+                    'success' => 'alert alert-success',
+                    'notice'  => 'alert alert-info',
+                    'warning' => 'alert alert-warning'
+                )
+            );
+            //关闭
+            $flash->setImplicitFlush(false);
+            return $flash;
+        });
+    }
+
+    /**
+     * Registers services related to the module
+     *
+     * @param DiInterface $di
+     */
+    public function registerServices(DiInterface $di)
+    {
+        /**
+         * Read configuration
+         */
+        // $config = include APP_PATH . "/apps/frontend/config/config.php";
+
+        $dispatcher = $di['dispatcher'];
+        $dispatcher->setDefaultNamespace(__NAMESPACE__.'\Controllers');
+        // $di['dispatcher'] = function() {
+        //     $dispatcher = new Dispatcher();
+        //     #不添加默认命名空间会导致路由中需要使用全类名
+
+        //     return $dispatcher;
+        // };
+
+
+        /**
+         * Setting up the view component
+         */
+        $view = $di['view'];
+        // echo $view->getMainView();
+        // echo __DIR__ . '/views/';
+
+        // $view->setViewsDir('/modules/admin/views/');
+
+        // $MAIN_VIEW_PATH = '../../../views/';
+        $view->setViewsDir(__DIR__.'/views/');
+        // $view->setMainView('/Users/Hin/work/phalcon_mode/app/views/admin');
+        // echo __DIR__;
+        // echo $view->getBasePath();
+
+        // $view->setLayout('main');
+        // $view->setLayout('main');
+        
+        // $MAIN_VIEW_PATH = dirname(__DIR__).'/views/';
+        // $this->view->setMainView($MAIN_VIEW_PATH.'admin');
+        // $view->setLayout('admin');
+        
+
+        /**
+         * Database connection is created based in the parameters defined in the configuration file
+         */
+        // $di['db'] = function () use ($config) {
+        //     return new DbAdapter($config->toArray());
+        // };
+    }
+}
