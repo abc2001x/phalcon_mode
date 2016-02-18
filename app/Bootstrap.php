@@ -136,20 +136,18 @@ class Bootstrap extends BaseApplication
             $view = new \Library\BaseView();
             // $view = new \Phalcon\Mvc\View();
             
-            // $view->setBasePath(__DIR__);
-            // $MAIN_VIEW_PATH = '/views/';
-            
-            // $view->setMainView('views/main');
-            // $view->setLayoutsDir('views/layouts/');
-            // $view->setLayout('main');
-            // $view->setPartialsDir('views/partials/');
-            
-
-            $MAIN_VIEW_PATH = '../../../views/';
-            $view->setMainView($MAIN_VIEW_PATH.'main');
-            $view->setLayoutsDir($MAIN_VIEW_PATH.'layouts/');
+            //绝对路径的使用方法
+            $view->setMainView(__DIR__.'/views/main');
+            $view->setLayoutsDir(__DIR__.'/views/layouts/');
             $view->setLayout('main');
-            $view->setPartialsDir($MAIN_VIEW_PATH.'partials/');
+            $view->setPartialsDir(__DIR__.'/views/partials/');
+            
+            //结合base path 使用相对路径
+            // $view->setBasePath(__DIR__);
+            // $view->setMainView('/views/main');
+            // $view->setLayoutsDir('/views/layouts/');
+            // $view->setLayout('main');
+            // $view->setPartialsDir('/views/partials/');
 
 
             $view->registerEngines(array(

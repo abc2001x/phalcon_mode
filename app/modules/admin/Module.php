@@ -66,30 +66,12 @@ class Module implements ModuleDefinitionInterface
          * Setting up the view component
          */
         $view = $di['view'];
-        // echo $view->getMainView();
-        // echo __DIR__ . '/views/';
 
-        // $view->setViewsDir('/modules/admin/views/');
-
-        // $MAIN_VIEW_PATH = '../../../views/';
+        //结合base path使用短路径设置
+        // $view->setViewsDir('/modules/'.strtolower(__NAMESPACE__).'/views/');
+        
+        //不使用base path,直接设置全路径
         $view->setViewsDir(__DIR__.'/views/');
-        // $view->setMainView('/Users/Hin/work/phalcon_mode/app/views/admin');
-        // echo __DIR__;
-        // echo $view->getBasePath();
-
-        // $view->setLayout('main');
-        // $view->setLayout('main');
         
-        // $MAIN_VIEW_PATH = dirname(__DIR__).'/views/';
-        // $this->view->setMainView($MAIN_VIEW_PATH.'admin');
-        // $view->setLayout('admin');
-        
-
-        /**
-         * Database connection is created based in the parameters defined in the configuration file
-         */
-        // $di['db'] = function () use ($config) {
-        //     return new DbAdapter($config->toArray());
-        // };
     }
 }
