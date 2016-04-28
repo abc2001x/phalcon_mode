@@ -1,3 +1,3 @@
 #/bin/sh
 
-echo "run in "`pwd`
+echo "run in . "`pwd`
