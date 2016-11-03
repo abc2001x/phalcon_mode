@@ -29,10 +29,20 @@ class Bootstrap extends BaseApplication
      */
     protected $errorCodes;
 
-    /**
-     * Register the services here to make them general or register in the ModuleDefinition to make them module-specific
-     */
-    
+    public function getModule($moduleName){
+        if (!array_key_exists($moduleName, $this->_modules)) {
+            if (!$this->_defaultModule) {
+                throw new \Phalcon\Application\Exception("Module '" . $moduleName . "' isn't registered in the application container");
+                
+            }
+            
+            return $this->_modules[$this->_defaultModule];
+
+        }
+
+        return $this->_modules[$moduleName];
+    }
+
     public static function getApp(){
         return self::$app;
     }
@@ -93,13 +103,30 @@ class Bootstrap extends BaseApplication
         //Register the installed modules
         $this->registerModules($modules);
 
-        // $eventsManager = new EventsManager();
-        // $eventsManager->attach(
-        //     "application:beforeSendResponse",
-        //     new \Plugins\AutoResponse()
-        // );
+        $eventsManager = new EventsManager();
+        $eventsManager->attach(
+            "application:beforeSendResponse",
+            new \Plugins\AutoResponse()
+        );
 
-        // $this->setEventsManager($eventsManager);
+        $this->setEventsManager($eventsManager);
+    }
+
+    protected function initDispatcher(){
+        $di = $this->getDi();
+
+        $di->setShared('dispatcher',function(){
+            $eventsManager = new EventsManager();
+            $eventsManager->attach(
+                "dispatch:beforeException",
+                new \Plugins\AutoResponse()    
+            );
+
+            $mvcDispatcher =  new \Phalcon\Mvc\Dispatcher();
+            $mvcDispatcher->setEventsManager($eventsManager);
+
+            return $mvcDispatcher;
+        });
     }
 
     protected function initSession(){
@@ -166,7 +193,6 @@ class Bootstrap extends BaseApplication
         $router->setDi($di);
         
         foreach ($this->getModules() as $module) {
-            // print_r($module);
             $routesClassName = str_replace('Module', 'Routes', $module['className']);
 
             if (class_exists($routesClassName)) {
@@ -229,7 +255,7 @@ class Bootstrap extends BaseApplication
     {
         $di = $this->getDi();
         $config = $this->configs['apps_data'];
-        $view = new \Phalcon\Mvc\View();
+        $view = new \Library\BaseView();
 
         define('MAIN_VIEW_PATH', '../../../views/');
         $view->setMainView(MAIN_VIEW_PATH . 'admin');//设置顶级布局文件
@@ -294,18 +320,16 @@ class Bootstrap extends BaseApplication
 
     public function initAll(){
         self::$app = $this;
-        $this->initApplication();
-        
-        // $this->initEventManager();
-
-        $this->initSession();
+        $this->setDefaultModule('admin');
         $this->initCache();
+        $this->initApplication();
+        $this->initSession();
         $this->initCookie();
         $this->initRouters();
         $this->initTransactions();
         $this->initDb();
         $this->initView();
-        $this->initApplication();
+        $this->initDispatcher();
         
     }
 

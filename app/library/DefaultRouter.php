@@ -13,7 +13,7 @@ class DefaultRouter extends Router
 
         $this->setDefaultController('index');
         $this->setDefaultAction('index');
-		// $this->setDefaultModule("admin");
+		$this->setDefaultModule("admin");
 
         $this->add('/:module/:controller/:action/:params', [
             'module' => 1,
@@ -48,5 +48,19 @@ class DefaultRouter extends Router
     	$this->add($pattern, $paths)->setName(self::ML_PREFIX . $name);
     }
 
+    // public function setDefaultModule($moduleName){
+    //     $this->_defaultModule = $moduleName;
+    // }
+
+    // public function getDefaultModule(){
+    //     return $this->_defaultModule;
+    // }
+    
+    // public function getModuleName(){
+    //     if (!$this->_module) {
+    //         $this->_module = $this->_defaultModule;
+    //     }
+    //     return $this->_module;
+    // }
 }
 

@@ -20,7 +20,12 @@ class IndexController extends \Library\BaseController {
 
 
     public function show404Action() {
-
+        echo '404';
+    }
+    
+    public function show503Action() {
+        // $this->view->setRenderLevel(\Phalcon\Mvc\View::LEVEL_LAYOUT);
+        echo '503';
     }
 
     public function noauthAction() {
@@ -28,12 +33,14 @@ class IndexController extends \Library\BaseController {
     }
 
     public function indexAction() {
+
         $this->session->set("user-name", "Michael");
-        $this->view->a= 123;
+        $this->view->a= 00102023912;
         $this->view->b= 123;
+
         // throw new \Exception("Error Processing Request", 1);
         // echo 'abc';
-        throw new Exception("Error Processing Request", 1);
+        // throw new Exception("Error Processing Request", 1);
         
         // $this->view->pick("main");
         // echo "string";

@@ -10,8 +10,8 @@
 			.content span{color:#f00;margin-left:10px;}
 		</style>
 		<div class="content">
-			<p><img src="/admin/images/error_404.png" /></p>
-			<p>抱歉，你所访问的页面不存在</p>
+			<!-- <p><img src="/admin/images/error_404.png" /></p> -->
+			<p>503 error</p>
 			<p><a href="javascript:history.go(-1);" >点击此连接返回</a><span>3</span></p>
 		</div>
 

@@ -13,11 +13,11 @@ class AutoResponse extends Component
 
     public function beforeSendResponse($event,$dispatcher){
         $di = $this->getDI();
-        $view = $di['view'];
-        
+        $view = $di->get('view');
         $request = $di['request'];
+
         if ($request->isAjax()) {
-            $view->setRenderLevel(\Phalcon\Mvc\View::LEVEL_LAYOUT);
+            $view->setRenderLevel(\Phalcon\Mvc\View::LEVEL_ACTION_VIEW);
         }
 
         $acceptable = $request->getAcceptableContent();
@@ -42,7 +42,7 @@ class AutoResponse extends Component
         $di = $this->getDI();
         $response = $di['response'];
 
-        $return = ['code'=>200];
+        $return = ['code'=>$response->getStatusCode()];
         $return['data'] = $data;
 
         $response->setContentType('application/json', 'UTF-8');
@@ -52,31 +52,42 @@ class AutoResponse extends Component
         // echo $response->getContent();
         // die();
     }
-    // public function beforeException($event, $dispatcher, $exception) {
-    //     if ($event instanceof DispatchException) {
-    //         $dispatcher->forward(
-    //             array(
-    //                 'controller' => 'index',
-    //                 'action'     => 'show404'
-    //             )
-    //         );
 
-    //         return false;
-    //     }
 
-    //     switch ($exception->getCode()) {
-    //         case Dispatcher::EXCEPTION_HANDLER_NOT_FOUND:
-    //         case Dispatcher::EXCEPTION_ACTION_NOT_FOUND:
-    //             $dispatcher->forward(
-    //                 array(
-    //                     'controller' => 'index',
-    //                     'action'     => 'show404'
-    //                 )
-    //             );
+    public function beforeException($event, $dispatcher, $exception) {
+        // var_dump($exception);
+        $di = $this->getDI();
+        $response = $di['response'];
 
-    //             return false;
-    //     }
-    // }
+        // Default error action
+        $action = "show503";
+        
+        $response->setStatusCode(503, "Service1 Unavailable");
+        // 处理404异常
+        if ($exception instanceof DispatchException) {
+            $action = "show404";
+            // $response->setHeader(404, 'Not Found');
+            $response->setStatusCode(404, "Not Found");
+
+            // $dispatcher->forward(
+            //     [
+            //         "controller" => "index",
+            //         "action"     => $action,
+            //     ]
+            // );
+            // return false;
+
+        }
+
+        $dispatcher->forward(
+                [
+                    "controller" => "index",
+                    "action"     => $action,
+                ]
+            );
+       
+        return false;
+    }
 
 
 }
