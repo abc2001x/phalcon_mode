@@ -28,16 +28,23 @@ class IndexController extends \Library\BaseController {
     }
 
     public function indexAction() {
-        
+        $this->session->set("user-name", "Michael");
         $this->view->a= 123;
+        $this->view->b= 123;
+        // throw new \Exception("Error Processing Request", 1);
+        // echo 'abc';
+        throw new Exception("Error Processing Request", 1);
+        
         // $this->view->pick("main");
         // echo "string";
         // echo $this->view->getMainView();
-        return true;
+        // return true;
     }
 
     public function testAction(){
-        
+        // $this->view->disable();
+        echo 'abc';
+        return true;
     }
 
 }

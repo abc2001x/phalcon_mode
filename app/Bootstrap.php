@@ -12,8 +12,6 @@ use Phalcon\Cache\Backend\Memcache as BackendMemcache;
 use Phalcon\Cache\Backend\File as BackFile;
 use Phalcon\Mvc\Model\Transaction\Manager as TransactionManager;
 
-$getDi = null;
-
 class Bootstrap extends BaseApplication
 {
     private static $app = null;
@@ -53,124 +51,24 @@ class Bootstrap extends BaseApplication
     public function getConfig(){
 
         if (!$this->configs) {
-
-            $this->configs = yaml_parse_file(dirname(__DIR__).'/config/config.yaml');
+            $this->getDi()->set('configs',function(){
+                $configs = require(dirname(__DIR__).'/config/config.php');
+                // $configs = new Config($config);
+                return $configs;
+            },true);
+            
+            $this->configs = $this->getDi()->get('configs');
         }
-        // var_dump($this->configs);
+        
         return $this->configs;
     }
-
-    protected function initRouters(){
-
-        $di = $this->getDi();
-        $router = new Library\DefaultRouter();
-        $router->setDi($di);
-        
-        foreach ($this->getModules() as $module) {
-            // print_r($module);
-            $routesClassName = str_replace('Module', 'Routes', $module['className']);
-
-            if (class_exists($routesClassName)) {
-                // echo $routesClassName;    
-                $routesClass = new $routesClassName();
-                $router = $routesClass->init($router);
-            }
-        }
     
-        $di->set('router', $router);
-
-    }
-
-
-    protected function initCache(){
-        $config = $this->getConfig()['apps_data'];
-        $di = $this->getDi();
-        // 设置模型缓存服务
-        $di->set('modelsCache', function ()use($config) {
-
-            // 默认缓存时间为一天
-            $frontCache = new FrontendData(
-                array(
-                    "lifetime" => 86400
-                )
-            );
-
-            // Memcached连接配置 这里使用的是Memcache适配器
-            $cache = new BackFile(
-                $frontCache,
-                array(
-                    "cacheDir" => dirname(__DIR__).$config['tmp_path']."/back/"
-                )
-            );
-
-            return $cache;
-        });
-    }
-
-    protected function initSession(){
-        $di = $this->getDi();
-        $di->set('session',function(){
-
-            $session = new \Phalcon\Session\Adapter\Files();
-            $session->start();
-            return $session;
-        },true);
-    }
-
-    protected function initConfig() {
-        $di = $this->getDI();
-        $di->set('configs', function() {
-            $config  = yaml_parse_file(dirname(__DIR__).'/config/config.yaml');
-            $configs = new Config($config);
-            $configs->root_path=dirname(__DIR__);
-            return $configs;
-        },true);
-    }
-
-
-    protected function initView(){
-        
-        $di = $this->getDi();
-
-        $di->set('view', function () {
-            $view = new \Library\BaseView();
-            // $view = new \Phalcon\Mvc\View();
-            
-            //绝对路径的使用方法
-            $view->setMainView(__DIR__.'/views/main');
-            $view->setLayoutsDir(__DIR__.'/views/layouts/');
-            $view->setLayout('main');
-            $view->setPartialsDir(__DIR__.'/views/partials/');
-            
-            //结合base path 使用相对路径
-            // $view->setBasePath(__DIR__);
-            // $view->setMainView('/views/main');
-            // $view->setLayoutsDir('/views/layouts/');
-            // $view->setLayout('main');
-            // $view->setPartialsDir('/views/partials/');
-
-
-            $view->registerEngines(array(
-                ".volt" => function ($view, $di) {
-                    $config = $this->getConfig()['apps_data'];
-                    // $volt = new \Phalcon\Mvc\View\Engine\Volt($view, $di);
-                    $volt = new \Library\BaseVolt($view, $di);
-                    $volt->setOptions(['compiledPath' =>   dirname(__DIR__).$config['tmp_path'].'/volt/']);
-
-                    return $volt;
-                }
-            ));
-
-            return $view;
-        });
-
-    }
-
     protected function initApplication()
     {
         $configs = $this->getConfig();
         $app_path = dirname(__DIR__);
         define('ROOT', $app_path);
+
         // init namespace
         $loader = new Loader();
         $packages = $this->configs['namespaces'];
@@ -194,50 +92,93 @@ class Bootstrap extends BaseApplication
         
         //Register the installed modules
         $this->registerModules($modules);
+
+        // $eventsManager = new EventsManager();
+        // $eventsManager->attach(
+        //     "application:beforeSendResponse",
+        //     new \Plugins\AutoResponse()
+        // );
+
+        // $this->setEventsManager($eventsManager);
     }
 
-    protected function initDb(){
+    protected function initSession(){
         $di = $this->getDi();
-        
-        // Setup the database service
-        $di->set('db', function () {
-            $config = $this->getConfig()['database'];
+        $di->set('session',function(){
+            $configs = $this->get('configs');
+            if (array_key_exists('memcache', $configs)) {
+                // print_r($config);die();
+                $session = new \Phalcon\Session\Adapter\Memcache([
+                     'uniqueId'   => 'session_app',
+                     'host'       => $configs['memcache']['host'],
+                     'port'       => $configs['memcache']['port'],
+                     'persistent' => true,
+                     'lifetime'   => 3600,
+                     'prefix'     => 'session_'
+                 ]); 
+            }else{
+                $session = new \Phalcon\Session\Adapter\Files();    
+            }
+            
+            $session->start();
+            return $session;
+        },true);
+    }
 
-            $eventsManager = new EventsManager();
+    protected function initCache(){
+        $config = $this->getConfig()['apps_data'];
+        $di = $this->getDi();
+        // 设置模型缓存服务
+        $di->set('modelsCache', function (){
+            $configs = $this->getDi()->get('configs');
+            // 默认缓存时间为一天
+            $frontCache = new FrontendData(
+                array(
+                    "lifetime" => 86400
+                )
+            );
 
-            $logger = new FileLogger(ROOT.$this->getConfig()['apps_data']['tmp_path'].'/'.date('Y-m-d').'.sql.log');
+            if (array_key_exists('memcache', $configs)) {
+                return new Phalcon\Cache\Backend\Memcache($frontCache,[
+                    'host'       => $configs['memcache']['host'],
+                    'port'       => $configs['memcache']['port'],
+                    'persistent' => true,
+                    'lifetime'   => 3600,
+                    'prefix'     => 'session_'
+                    ]);
+            }
 
-            // Listen all the database events
-            $eventsManager->attach('db', function ($event, $connection) use ($logger) {
-               
-                if ($event->getType() == 'beforeQuery') {
+            // Memcached连接配置 这里使用的是Memcache适配器
+            return new BackFile(
+                $frontCache,
+                array(
+                    "cacheDir" => dirname(__DIR__).$config['tmp_path']."/back/"
+                )
+            );
 
-                    $logger->info($connection->getSQLStatement());
-                }
-            });
-
-            $db = new \Phalcon\Db\Adapter\Pdo\Mysql($config);
-            // $db->query('set names utf-8');
-            $db->setEventsManager($eventsManager);
-
-            return $db;
         });
-
     }
-    private function initEventManager()
-    {
+
+    protected function initRouters(){
+
         $di = $this->getDi();
+        $router = new Library\DefaultRouter();
+        $router->setDi($di);
+        
+        foreach ($this->getModules() as $module) {
+            // print_r($module);
+            $routesClassName = str_replace('Module', 'Routes', $module['className']);
 
-        $eventsManager = new \Phalcon\Events\Manager();
-        $dispatcher = new \Phalcon\Mvc\Dispatcher();
-        // $dispatcher = $di->get('dispatcher');
+            if (class_exists($routesClassName)) {
+                // echo $routesClassName;    
+                $routesClass = new $routesClassName();
+                $router = $routesClass->init($router);
+            }
+        }
+    
+        $di->set('router', $router);
 
-        $eventsManager->attach("dispatch", new \Plugins\CheckPoint);
-
-        $dispatcher->setEventsManager($eventsManager);
-        $di->set('dispatcher', $dispatcher);
     }
-
 
     private function initCookie() {
         $di = $this->getDI();
@@ -255,33 +196,137 @@ class Bootstrap extends BaseApplication
         });
     }
 
+    protected function initDb(){
+        $di = $this->getDi();
+        
+        // Setup the database service
+        $di->set('db', function () {
+            $configs = $this->get('configs')['database'];
+
+            $eventsManager = new EventsManager();
+
+            $logger = new FileLogger(ROOT.$this->getConfig()['apps_data']['tmp_path'].'/'.date('Y-m-d').'.sql.log');
+
+            // Listen all the database events
+            $eventsManager->attach('db', function ($event, $connection) use ($logger) {
+               
+                if ($event->getType() == 'beforeQuery') {
+
+                    $logger->info($connection->getSQLStatement());
+                }
+            });
+
+            $db = new \Phalcon\Db\Adapter\Pdo\Mysql($configs);
+            // $db->query('set names utf-8');
+            $db->setEventsManager($eventsManager);
+
+            return $db;
+        });
+
+    }
+
+    private function initView()
+    {
+        $di = $this->getDi();
+        $config = $this->configs['apps_data'];
+        $view = new \Phalcon\Mvc\View();
+
+        define('MAIN_VIEW_PATH', '../../../views/');
+        $view->setMainView(MAIN_VIEW_PATH . 'admin');//设置顶级布局文件
+        $view->setLayoutsDir(MAIN_VIEW_PATH . '/layouts/');//设置二级布局目录
+        $view->setLayout('main');//设置二级布局目录下的文件
+        $view->setPartialsDir(MAIN_VIEW_PATH . '/partials/');//设置片段目录
+        // echo $view->getMainView();die();
+        // Volt
+        $volt = new \Library\BaseVolt($view, $di);
+        $volt->setOptions(['compiledPath' => dirname(__DIR__).$config['tmp_path'].'/volt/']);
+        $volt->initCompiler();
+
+
+        $phtml = new \Phalcon\Mvc\View\Engine\Php($view, $di);
+        $viewEngines = [
+            ".volt"  => $volt,
+            ".phtml" => $phtml,
+        ];
+
+        $view->registerEngines($viewEngines);
+
+        $di->set('view', $view);
+        $this->initViewCache();
+        return $view;
+    }
+
+    public function initViewCache(){
+        $di = $this->getDi();
+        $di->set(
+            "viewCache",
+            function () {
+                $configs = $this->get('configs');
+                // Cache data for one day by default
+                $frontCache = new Phalcon\Cache\Frontend\Output(
+                    [
+                        "lifetime" => 86400,
+                    ]
+                );
+
+                // Memcached connection settings
+
+                if (array_key_exists('memcache', $configs)) {
+                    return new Phalcon\Cache\Backend\Memcache($frontCache,[
+                        'host'       => $configs['memcache']['host'],
+                        'port'       => $configs['memcache']['port'],
+                        'persistent' => true,
+                        'lifetime'   => 3600,
+                        'prefix'     => 'view_cache_'
+                    ]);
+                }
+
+                return new BackFile(
+                    $frontCache,
+                    [
+                        "cacheDir" => dirname(__DIR__).$config['tmp_path']."/volt/"
+                    ]
+                );
+            }
+        );
+    }
+
+
     public function initAll(){
         self::$app = $this;
         $this->initApplication();
         
-        $this->initEventManager();
+        // $this->initEventManager();
 
         $this->initSession();
-        
-        $this->initView();
-
-        $this->initRouters();
-
-        $this->initDb();
         $this->initCache();
-
-        $this->initConfig();
-
         $this->initCookie();
+        $this->initRouters();
         $this->initTransactions();
+        $this->initDb();
+        $this->initView();
+        $this->initApplication();
+        
     }
 
     public function run()
-    {
+    {   
         $this->initAll();
-        try {
+        $configs = $this->getDi()->get('configs');
 
-            //todo 按模块 判断 ,错误时输出json或者html页面
+        if ($configs['debug']) {
+
+            $response = $this->handle();
+            echo $response->getContent();
+            
+            return;
+        }
+        
+        // $config = $this->getConfig();
+        // print_r($config);
+        try {   
+
+            // todo 按模块 判断 ,错误时输出json或者html页面
             $response = $this->handle();
             echo $response->getContent();
 
