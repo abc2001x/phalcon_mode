@@ -28,6 +28,10 @@ class Bootstrap extends BaseApplication
      * @var array $array
      */
     protected $errorCodes;
+    
+    public function createDir($dir){
+        return is_dir($dir) or ($this->createDir(dirname($dir)) and @mkdir($dir, 0777));
+    }
 
     public function getModule($moduleName){
         if (!array_key_exists($moduleName, $this->_modules)) {
@@ -63,7 +67,6 @@ class Bootstrap extends BaseApplication
         if (!$this->configs) {
             $this->getDi()->set('configs',function(){
                 $configs = require(dirname(__DIR__).'/config/config.php');
-                // $configs = new Config($config);
                 return $configs;
             },true);
             
@@ -97,7 +100,6 @@ class Bootstrap extends BaseApplication
         unset($params);
         
         $packages = array_merge($moduleNameSpaces,$packages);
-        // print_r($packages);
         $loader->registerNamespaces($packages)->register();;
         
         //Register the installed modules
@@ -136,7 +138,6 @@ class Bootstrap extends BaseApplication
         $di->set('session',function(){
             $configs = $this->get('configs');
             if (array_key_exists('memcache', $configs)) {
-                // print_r($config);die();
                 $session = new \Phalcon\Session\Adapter\Memcache([
                      'uniqueId'   => 'session_app',
                      'host'       => $configs['memcache']['host'],
@@ -155,7 +156,6 @@ class Bootstrap extends BaseApplication
     }
 
     protected function initCache(){
-        $config = $this->getConfig()['apps_data'];
         $di = $this->getDi();
         // 设置模型缓存服务
         $di->set('modelsCache', function (){
@@ -181,7 +181,7 @@ class Bootstrap extends BaseApplication
             return new BackFile(
                 $frontCache,
                 array(
-                    "cacheDir" => dirname(__DIR__).$config['tmp_path']."/back/"
+                    "cacheDir" => dirname(__DIR__).$configs['apps_data']['cache']
                 )
             );
 
@@ -233,7 +233,7 @@ class Bootstrap extends BaseApplication
 
             $eventsManager = new EventsManager();
 
-            $logger = new FileLogger(ROOT.$this->getConfig()['apps_data']['tmp_path'].'/'.date('Y-m-d').'.sql.log');
+            $logger = new FileLogger(ROOT.$this->getConfig()['apps_data']['logs'].'/'.date('Y-m-d').'.sql.log');
 
             // Listen all the database events
             $eventsManager->attach('db', function ($event, $connection) use ($logger) {
@@ -256,7 +256,7 @@ class Bootstrap extends BaseApplication
     private function initView()
     {
         $di = $this->getDi();
-        $config = $this->configs['apps_data'];
+        $configs = $this->configs['apps_data'];
         $view = new \Phalcon\Mvc\View();
 
         define('MAIN_VIEW_PATH', '../../../views/');
@@ -264,12 +264,24 @@ class Bootstrap extends BaseApplication
         $view->setLayoutsDir(MAIN_VIEW_PATH . '/layouts/');//设置二级布局目录
         $view->setLayout('main');//设置二级布局目录下的文件
         $view->setPartialsDir(MAIN_VIEW_PATH . '/partials/');//设置片段目录
-        // echo $view->getMainView();die();
+        
         // Volt
         $volt = new \Library\BaseVolt($view, $di);
-        $volt->setOptions(['compiledPath' => dirname(__DIR__).$config['tmp_path'].'/volt/']);
-        $volt->initCompiler();
+        $path = dirname(__DIR__).$configs['volt'];
 
+        // $volt->setOptions(
+        //     [
+        //         "compiledPath" => function ($templatePath)use($path) {
+        //             $t = str_replace(dirname(__DIR__), '', $templatePath);
+        //             return $path . $t .".php";
+        //         }
+        //     ]
+        // );
+        $volt->setOptions([
+            'compiledPath' => dirname(__DIR__).$configs['volt'],
+            'compiledSeparator'=>'-',
+            ]);
+        $volt->initCompiler();
 
         $phtml = new \Phalcon\Mvc\View\Engine\Php($view, $di);
         $viewEngines = [
@@ -286,6 +298,7 @@ class Bootstrap extends BaseApplication
 
     public function initViewCache(){
         $di = $this->getDi();
+
         $di->set(
             "viewCache",
             function () {
@@ -298,7 +311,6 @@ class Bootstrap extends BaseApplication
                 );
 
                 // Memcached connection settings
-
                 if (array_key_exists('memcache', $configs)) {
                     return new Phalcon\Cache\Backend\Memcache($frontCache,[
                         'host'       => $configs['memcache']['host'],
@@ -309,22 +321,37 @@ class Bootstrap extends BaseApplication
                     ]);
                 }
 
+                $dirPath = dirname(__DIR__).$configs['apps_data']['cache'];
                 return new BackFile(
                     $frontCache,
                     [
-                        "cacheDir" => dirname(__DIR__).$config['tmp_path']."/volt/"
+                        "cacheDir" => $dirPath
                     ]
                 );
             }
         );
     }
 
+    private function initDirs(){
+        $di = $this->getDI();
+        $configs = $di->get('configs');
+        if (!$configs['debug']) {
+            return;
+        }
+        foreach ($configs['apps_data'] as $v) {
+            $this->createDir(ROOT.$v);
+        }
+    }
 
     public function initAll(){
+        $app_path = dirname(__DIR__);
+        define('ROOT', $app_path);
+
         self::$app = $this;
         $this->setDefaultModule('admin');
-        $this->initCache();
         $this->initApplication();
+        $this->initDirs();
+        $this->initCache();
         $this->initSession();
         $this->initCookie();
         $this->initRouters();
@@ -343,18 +370,13 @@ class Bootstrap extends BaseApplication
         if ($configs['debug']) {
 
             $response = $this->handle();
-            // $response2 = $di['response'];
-            // var_dump($response==$response2);die();
             echo $response->getContent();
             
             return;
         }
         
-        // $config = $this->getConfig();
-        // print_r($config);
         try {   
 
-            // todo 按模块 判断 ,错误时输出json或者html页面
             $response = $this->handle();
             echo $response->getContent();
 

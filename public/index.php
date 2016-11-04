@@ -1,6 +1,5 @@
 <?php
 (new \Phalcon\Debug())->listen();
-
 use Phalcon\DI\FactoryDefault;
 
 include dirname(__DIR__).'/app/Bootstrap.php';
