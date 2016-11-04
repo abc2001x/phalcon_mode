@@ -103,9 +103,11 @@ class Bootstrap extends BaseApplication
         //Register the installed modules
         $this->registerModules($modules);
 
+        $di = $this->getDI();
+        $di->setShared('application',$this);
         $eventsManager = new EventsManager();
         $eventsManager->attach(
-            "application:beforeSendResponse",
+            "application",
             new \Plugins\AutoResponse()
         );
 
@@ -118,7 +120,7 @@ class Bootstrap extends BaseApplication
         $di->setShared('dispatcher',function(){
             $eventsManager = new EventsManager();
             $eventsManager->attach(
-                "dispatch:beforeException",
+                "dispatch",
                 new \Plugins\AutoResponse()    
             );
 
@@ -196,7 +198,7 @@ class Bootstrap extends BaseApplication
             $routesClassName = str_replace('Module', 'Routes', $module['className']);
 
             if (class_exists($routesClassName)) {
-                // echo $routesClassName;    
+                // echo $routesClassName;    die();
                 $routesClass = new $routesClassName();
                 $router = $routesClass->init($router);
             }
@@ -255,7 +257,7 @@ class Bootstrap extends BaseApplication
     {
         $di = $this->getDi();
         $config = $this->configs['apps_data'];
-        $view = new \Library\BaseView();
+        $view = new \Phalcon\Mvc\View();
 
         define('MAIN_VIEW_PATH', '../../../views/');
         $view->setMainView(MAIN_VIEW_PATH . 'admin');//设置顶级布局文件
@@ -341,6 +343,8 @@ class Bootstrap extends BaseApplication
         if ($configs['debug']) {
 
             $response = $this->handle();
+            // $response2 = $di['response'];
+            // var_dump($response==$response2);die();
             echo $response->getContent();
             
             return;
