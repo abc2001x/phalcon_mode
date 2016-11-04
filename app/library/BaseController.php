@@ -20,26 +20,4 @@ class BaseController extends \Phalcon\Mvc\Controller
         $this->response->send();
     }
 
-    public function returnJSON($response)
-    {
-        $this->view->disable();
-
-        $this->response->setContentType('application/json', 'UTF-8');
-        $this->response->setContent(json_encode($response));
-        $this->response->send();
-    }
-
-    public function flashErrors($model)
-    {
-        foreach ($model->getMessages() as $message) {
-            $this->flash->error($message);
-        }
-    }
-
-    public function setAdminEnvironment()
-    {
-        $this->view->setMainView(MAIN_VIEW_PATH . 'admin');
-        $this->view->setLayout(null);
-    }
-
 }

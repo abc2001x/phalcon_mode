@@ -1,2 +1,1 @@
-Phalcon==2.06
-Php-yaml
+Phalcon==3.01

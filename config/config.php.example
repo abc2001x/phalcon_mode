@@ -1,0 +1,35 @@
+<?php 
+return [
+    'debug' => true,
+    'database' => [
+        'adapter'  => 'Mysql',
+        'host'     => '172.17.0.3',
+        'username' => 'root',
+        'password' => '111111',
+        'dbname'   => 'rookie',
+        'port'     => '3306',
+        'charset'  => 'utf8',   
+    ],
+    'memcache' =>[
+        "host"   => "172.17.0.7",
+        "port"   => "11211",
+    ],
+    'namespaces' =>[
+        'Plugins'  => '/app/plugins',    #namespace:path
+        'Library'  => '/app/library',
+        'Model'    => '/app/model',
+        'Service'  => '/app/service',
+        'ReactQue' => '/react_phalcon',
+    ],
+    'apps_data' =>[
+        'tmp_path'  => '/../cache',
+        'user_data'  => '../data'
+    ],
+    'apps_modules'=>[
+        'admin'=>[
+            'className'=> 'Admin\Module',
+            'path' => '/app/modules/admin/Module.php'
+        ]
+    ]
+
+];
