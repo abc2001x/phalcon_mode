@@ -22,8 +22,10 @@ return [
         'ReactQue' => '/react_phalcon',
     ],
     'apps_data' =>[
-        'tmp_path'  => '/../cache',
-        'user_data'  => '../data'
+        'cache'  => '/storage/cache/',
+        'user_data'  => '/storage/data/',
+        'logs' =>'/storage/logs/',
+        'volt' =>'/storage/volt/'
     ],
     'apps_modules'=>[
         'admin'=>[
